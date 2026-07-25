@@ -10,9 +10,10 @@ import './style.css';
 
 // Scene, Camera, Renderer Setup
 const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x000000, 150, 250);
 
 // PerspectiveCamera: fov, aspect, near, far
-const camera = new THREE.PerspectiveCamera(30, getAspect(), 15, 75);
+const camera = new THREE.PerspectiveCamera(30, getAspect(), 15, 250);
 // Move camera back to see the plane
 camera.position.z = 60;
 

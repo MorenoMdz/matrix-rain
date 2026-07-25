@@ -11,10 +11,13 @@ export const CUSTOM_SET = [
 
 export const STANDARD_KATAKANA = Array.from({ length: 96 }, (_, i) => String.fromCharCode(0x30A0 + i));
 
+export const IMAGE_SET = { type: 'image', length: 56, src: 'matrix-glyphs.png' };
+
 export const CHARACTER_SETS = {
   CUSTOM: CUSTOM_SET,
-  KATAKANA: STANDARD_KATAKANA
+  KATAKANA: STANDARD_KATAKANA,
+  IMAGE: IMAGE_SET
 };
 
-// Expose the active set for easy swapping
-export const ACTIVE_CHARSET = CHARACTER_SETS.CUSTOM;
+// Expose the active set for easy swapping. Try CHARACTER_SETS.IMAGE to see the image-based glyphs!
+export const ACTIVE_CHARSET = CHARACTER_SETS.IMAGE;

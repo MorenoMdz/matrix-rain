@@ -12,7 +12,7 @@
     <img src="https://img.shields.io/badge/2D_Rain-22272e?style=for-the-badge&labelColor=1b1f23&color=adbac7" alt="2D Rain" />
   </a>
   &nbsp;
-  <a href="./devlog/milestone-3.md">
+  <a href="https://anshulsharma.org/posts/matrix-rain/">
     <img src="https://img.shields.io/badge/Devlog-22272e?style=for-the-badge&labelColor=1b1f23&color=adbac7" alt="Devlog" />
   </a>
 </p>
@@ -58,13 +58,15 @@ An "almost" faithful reproduction of the iconic Matrix "code rain" built with va
 - Strict ES Modules usage (import/export).
 - Using AI for creating documentation via JSDoc, github commits, and taking notes that I refer later for writing my blogposts.
 
-## Inspiration and Lots of Learning from the OG "Architect" - [rezmason] (https://github.com/Rezmason/matrix). This is the most complete bible on the Matrix digital code rain.
+## Inspiration and Lots of Learning from the OG "Architect" - [rezmason](https://github.com/Rezmason/matrix). This is the most complete bible on the Matrix digital code rain.
 
-# Matrix Rain 3D: Architecture & Function Cheat Sheet
+---
+
+## Matrix Rain 3D: Architecture & Function Cheat Sheet
 
 This document breaks down how the 3D Matrix Rain is built, detailing what each function does and how they interact to render the final infinite scene.
 
-## Core Flow Chart
+### Core Flow Chart
 
 The application follows a standard game loop architecture: Initialization first, followed by a continuous Render/Update loop.
 
@@ -89,7 +91,7 @@ graph TD
 
 ---
 
-## 1. The Entry Point: `main.js`
+### 1. The Entry Point: `main.js`
 
 This file is the nervous system of the application. It creates the Three.js scene, renderer, and cameras, and orchestrates the animation loop.
 
@@ -98,7 +100,7 @@ This file is the nervous system of the application. It creates the Three.js scen
 
 ---
 
-## 2. The Rain System: `src/rain/matrix-3d.js`
+### 2. The Rain System: `src/rain/matrix-3d.js`
 
 This is the most complex file in the project. It handles the GPU instantiation and the "Sparse Instance Pool" logic.
 
@@ -115,14 +117,14 @@ This is the most complex file in the project. It handles the GPU instantiation a
 
 ---
 
-## 3. Support Functions
+### 3. Support Functions
 
-### `src/utils/fps-camera.js`
+#### `src/utils/fps-camera.js`
 Handles the First Person movement (zero-gravity flying).
 *   **`setupFPSCamera(camera, domElement)`**: Initializes the `THREE.Euler` rotation variables and hooks up the browser's Pointer Lock API so that mouse movements translate into pitch and yaw. It also tracks W/A/S/D and Space/Shift key presses.
 *   **`updateFPSCamera(deltaTime, camera)`**: Called every frame. It translates the camera forward, backward, left, right, up, or down along the camera's *local* axes based on which keys are currently held down.
 
-### `src/rain/glyph-atlas.js`
+#### `src/rain/glyph-atlas.js`
 *   **`createGlyphAtlas(...)`**: A pure 2D Canvas utility. Before Three.js even renders a 3D frame, this function draws every single Matrix character in varying states of brightness (from glowing green to completely faded) onto a hidden 2D canvas. This canvas is then converted into a texture map and fed to the GPU, allowing the 3D planes to simply "look up" the character they need.
 
 ### `src/rain/trails.js`

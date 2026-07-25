@@ -7,25 +7,31 @@ import { Trail } from './trails.js';
 // Configuration
 const FONT_SIZE = 32;
 const TRAIL_LENGTH = 30;
-const TRAIL_HEAD_COLOR = '#d0ff00ff';
+const TRAIL_HEAD_COLOR = '#fcf37fff'; // More yellowish neon green
 const TRAIL_START_COLOR = { r: 50, g: 255, b: 0, a: 1 };
 const TRAIL_END_COLOR = { r: 0, g: 64, b: 0, a: 0 };
 const GLOW_COLOR = '#0F0';
 const GLOW_MAX_BLUR = 5;
+
+// Rain behavior configuration
+const MIN_SPEED = 10;
+const MAX_SPEED = 25;
+const MIN_CAMERA_DISTANCE = 5.0; // Prevent characters from getting too close/big
 
 // Grid configuration
 const CHAR_WIDTH = 1.0;
 const CHAR_HEIGHT = 1.0;
 const SPACING_Z = 1.0;
 
-const NUM_TRAILS = 750;
-const MAX_INSTANCES = NUM_TRAILS * TRAIL_LENGTH;
-const SPAWN_RANGE = 120; // How far around the camera trails spawn
+const NUM_TRAILS = 500;
+const MAX_INSTANCES = NUM_TRAILS * 60; // Enough buffer for multiple drops per column
+const SPAWN_RANGE = 250; // How far around the camera trails spawn
 
 export function setupRain3D(scene, initialCamera) {
   const atlasCellWidth = FONT_SIZE + GLOW_MAX_BLUR * 2 + 4;
   const atlasCellHeight = FONT_SIZE + GLOW_MAX_BLUR * 2 + 4;
 
+  let texture;
   const { atlasCanvas } = createGlyphAtlas(
     ACTIVE_CHARSET,
     atlasCellWidth,
@@ -36,10 +42,11 @@ export function setupRain3D(scene, initialCamera) {
     TRAIL_START_COLOR,
     TRAIL_END_COLOR,
     GLOW_COLOR,
-    GLOW_MAX_BLUR
+    GLOW_MAX_BLUR,
+    () => { if (texture) texture.needsUpdate = true; }
   );
 
-  const texture = new THREE.CanvasTexture(atlasCanvas);
+  texture = new THREE.CanvasTexture(atlasCanvas);
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
 
@@ -55,9 +62,11 @@ export function setupRain3D(scene, initialCamera) {
 
   material.onBeforeCompile = (shader) => {
     shader.uniforms.atlasCells = { value: new THREE.Vector2(ACTIVE_CHARSET.length, TRAIL_LENGTH) };
+    shader.uniforms.minCameraDist = { value: MIN_CAMERA_DISTANCE };
     shader.vertexShader = `
       attribute vec2 instanceUvInfo; 
       uniform vec2 atlasCells;
+      uniform float minCameraDist;
       varying float vVisible;
     ` + shader.vertexShader;
 
@@ -84,6 +93,8 @@ export function setupRain3D(scene, initialCamera) {
        vec4 instanceWorldPos = modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
        
        vec3 toCamera = cameraPosition - instanceWorldPos.xyz;
+       float distToCam = length(toCamera);
+       
        toCamera.y = 0.0;
        
        if (length(toCamera) > 0.0001) {
@@ -98,7 +109,12 @@ export function setupRain3D(scene, initialCamera) {
        vec3 billboardedPos = rot * transformed;
        
        vec4 mvPosition = viewMatrix * vec4(billboardedPos + instanceWorldPos.xyz, 1.0);
-       gl_Position = projectionMatrix * mvPosition;
+       
+       if (distToCam < minCameraDist) {
+           gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Clip instances that are too close
+       } else {
+           gl_Position = projectionMatrix * mvPosition;
+       }
       `
     );
 
@@ -124,12 +140,16 @@ export function setupRain3D(scene, initialCamera) {
   uvAttribute.setUsage(THREE.DynamicDrawUsage);
   geometry.setAttribute('instanceUvInfo', uvAttribute);
 
-  // Initialize with hidden state
+  const _identityMatrix = new THREE.Matrix4();
+
+  // Initialize with hidden state and identity matrices
   for (let i = 0; i < MAX_INSTANCES; i++) {
+    mesh.setMatrixAt(i, _identityMatrix);
     instanceUvInfo[i * 2 + 0] = 0;
     instanceUvInfo[i * 2 + 1] = -1;
   }
   uvAttribute.needsUpdate = true;
+  mesh.instanceMatrix.needsUpdate = true;
   scene.add(mesh);
 
   const dummy = new THREE.Object3D();
@@ -153,29 +173,32 @@ export function setupRain3D(scene, initialCamera) {
     return hash % ACTIVE_CHARSET.length;
   }
 
-  function spawnTrail(index, cameraPos) {
+  function spawnTrail(index, camera) {
+    const cameraPos = camera.position;
+    const forward = new THREE.Vector3();
+    camera.getWorldDirection(forward);
+
+    // Bias spawn position ahead of the camera so we don't outrun the rain
+    const center = cameraPos.clone().add(forward.multiplyScalar(SPAWN_RANGE / 2));
+
     const startPos = new THREE.Vector3(
-      cameraPos.x + (Math.random() - 0.5) * SPAWN_RANGE,
-      cameraPos.y + (Math.random() - 0.5) * SPAWN_RANGE + (SPAWN_RANGE / 2),
-      cameraPos.z + (Math.random() - 0.5) * SPAWN_RANGE
+      center.x + (Math.random() - 0.5) * SPAWN_RANGE,
+      center.y + (Math.random() - 0.5) * SPAWN_RANGE + (SPAWN_RANGE / 2),
+      center.z + (Math.random() - 0.5) * SPAWN_RANGE
     );
     const dir = new THREE.Vector3(0, -1, 0);
-    const speed = Math.random() * 15 + 10;
-    const length = Math.floor(Math.random() * 15 + 15);
+    const speed = Math.random() * (MAX_SPEED - MIN_SPEED) + MIN_SPEED;
 
     if (trails[index]) {
-      trails[index].position.copy(startPos);
-      trails[index].direction.copy(dir);
-      trails[index].length = length;
-      trails[index].speed = speed;
+      trails[index].reset(startPos, dir, speed);
     } else {
-      trails.push(new Trail(startPos, dir, length, speed));
+      trails.push(new Trail(startPos, dir, speed));
     }
   }
 
   // Initial dummy trails
   for (let i = 0; i < NUM_TRAILS; i++) {
-    spawnTrail(i, initialCamera.position);
+    spawnTrail(i, initialCamera);
   }
 
   const frustum = new THREE.Frustum();
@@ -198,43 +221,50 @@ export function setupRain3D(scene, initialCamera) {
       // Respawn if trail falls way below camera, or gets left behind horizontally
       const distSq = trail.position.distanceToSquared(camera.position);
       if (trail.position.y < camera.position.y - SPAWN_RANGE || distSq > sqSpawnRange * 1.5) {
-        spawnTrail(i, camera.position);
+        spawnTrail(i, camera);
         continue;
       }
 
-      // Check if trail intersects Frustum
-      const trailCenter = new THREE.Vector3().addVectors(trail.position, trail.direction.clone().multiplyScalar(-trail.length / 2));
-      const sphere = new THREE.Sphere(trailCenter, trail.length / 2 + CHAR_HEIGHT);
+      // Check if column intersects Frustum
+      const trailCenter = new THREE.Vector3().addVectors(trail.position, trail.direction.clone().multiplyScalar(-trail.totalLength / 2));
+      const sphere = new THREE.Sphere(trailCenter, trail.totalLength / 2 + CHAR_HEIGHT);
       if (!frustum.intersectsSphere(sphere)) continue;
 
-      const samples = Math.floor(trail.length / CHAR_HEIGHT);
+      for (let d = 0; d < trail.drops.length; d++) {
+        const drop = trail.drops[d];
+        const samples = Math.floor(drop.length / CHAR_HEIGHT);
 
-      for (let j = 0; j <= samples; j++) {
-        // Prevent exceeding max instances
-        if (instanceCount >= MAX_INSTANCES) break;
+        for (let j = 0; j <= samples; j++) {
+          // Prevent exceeding max instances
+          if (instanceCount >= MAX_INSTANCES) break;
 
-        const px = trail.position.x - trail.direction.x * (j * CHAR_HEIGHT);
-        const py = trail.position.y - trail.direction.y * (j * CHAR_HEIGHT);
-        const pz = trail.position.z - trail.direction.z * (j * CHAR_HEIGHT);
+          const dropOffset = drop.yOffset;
+          const px = trail.position.x - trail.direction.x * ((j + dropOffset) * CHAR_HEIGHT);
+          const py = trail.position.y - trail.direction.y * ((j + dropOffset) * CHAR_HEIGHT);
+          const pz = trail.position.z - trail.direction.z * ((j + dropOffset) * CHAR_HEIGHT);
 
-        // Snap coordinates to grid for matrix rain aesthetic
-        const snappedX = Math.round(px / CHAR_WIDTH) * CHAR_WIDTH;
-        const snappedY = Math.round(py / CHAR_HEIGHT) * CHAR_HEIGHT;
-        const snappedZ = Math.round(pz / SPACING_Z) * SPACING_Z;
+          // Snap coordinates to grid for matrix rain aesthetic
+          const snappedX = Math.round(px / CHAR_WIDTH) * CHAR_WIDTH;
+          const snappedY = Math.round(py / CHAR_HEIGHT) * CHAR_HEIGHT;
+          const snappedZ = Math.round(pz / SPACING_Z) * SPACING_Z;
 
-        dummy.position.set(snappedX, snappedY, snappedZ);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(instanceCount, dummy.matrix);
+          // DIRECT MATRIX OVERRIDE: Avoids the heavy CPU cost of dummy.updateMatrix()
+          const matrixOffset = instanceCount * 16;
+          const matrixArray = mesh.instanceMatrix.array;
+          matrixArray[matrixOffset + 12] = snappedX;
+          matrixArray[matrixOffset + 13] = snappedY;
+          matrixArray[matrixOffset + 14] = snappedZ;
 
-        // Spatial hash for stable character
-        const worldCx = Math.round(px / CHAR_WIDTH);
-        const worldCy = Math.round(py / CHAR_HEIGHT);
-        const worldCz = Math.round(pz / SPACING_Z);
+          // Spatial hash for stable character
+          const worldCx = Math.round(px / CHAR_WIDTH);
+          const worldCy = Math.round(py / CHAR_HEIGHT);
+          const worldCz = Math.round(pz / SPACING_Z);
 
-        instanceUvInfo[instanceCount * 2 + 0] = getCharIndex(worldCx, worldCy, worldCz);
-        instanceUvInfo[instanceCount * 2 + 1] = Math.floor((j / samples) * (TRAIL_LENGTH - 1));
+          instanceUvInfo[instanceCount * 2 + 0] = getCharIndex(worldCx, worldCy, worldCz);
+          instanceUvInfo[instanceCount * 2 + 1] = Math.floor((j / samples) * (TRAIL_LENGTH - 1));
 
-        instanceCount++;
+          instanceCount++;
+        }
       }
     }
 
