@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { setupRain3D } from './rain/matrix-3d.js';
+import { setupImageRain } from './rain/image-rain.js';
 import { setupFPS, updateFPS } from './utils/fps.js';
 import { debug, toggleDebug } from './utils/debug.js';
 import { getAspect, onResize } from './utils/viewport.js';
@@ -43,6 +44,92 @@ setupFPS();
 // Always pass the main camera so the grid logic is tied to what the main camera sees
 const { update: updateRain, resize: resizeRain, getMesh } = setupRain3D(scene, camera);
 
+// Image Spawner settings
+let nextSpawnInterval = 5 + Math.random() * 15; // Random between 5 and 20 seconds
+const IMAGES = [
+  'src/assets/images/neo.png',
+  'src/assets/images/morpheus.png',
+  'src/assets/images/smith.png',
+  'src/assets/images/smith2.png',
+  'src/assets/images/trinity.jpg',
+  'src/assets/images/matrix.jpg'
+];
+let activeImages = [];
+let lastSpawnTime = performance.now();
+const frustum = new THREE.Frustum();
+const projScreenMatrix = new THREE.Matrix4();
+
+let imageBag = [];
+function getNextImage() {
+  if (imageBag.length === 0) {
+    imageBag = [...IMAGES];
+    // Fisher-Yates shuffle
+    for (let i = imageBag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [imageBag[i], imageBag[j]] = [imageBag[j], imageBag[i]];
+    }
+  }
+  return imageBag.pop();
+}
+
+function spawnRandomImage() {
+  // Cap at 3 active images
+  if (activeImages.length >= 3) {
+    return;
+  }
+
+  // Find a valid position that doesn't overlap existing images
+  let spawnPos = new THREE.Vector3();
+  let validPos = false;
+  let attempts = 0;
+
+  while (!validPos && attempts < 10) {
+    attempts++;
+    // Distance between 50 and 90 units
+    const distance = 50 + Math.random() * 40;
+
+    // Create a vector pointing forward from the camera
+    const dir = new THREE.Vector3(0, 0, -1);
+    // Wide spread to fit multiple images on screen without overlap
+    dir.x += (Math.random() - 0.5) * 1.5;
+    dir.y += (Math.random() - 0.5) * 1.0;
+    dir.normalize();
+    dir.applyQuaternion(camera.quaternion);
+
+    spawnPos.copy(camera.position).add(dir.multiplyScalar(distance));
+
+    // Check clearance against active images (assume roughly ~60 units clearance needed)
+    validPos = true;
+    for (const img of activeImages) {
+      if (spawnPos.distanceTo(img.mesh.position) < 60) {
+        validPos = false;
+        break;
+      }
+    }
+  }
+
+  // If no clear position is found after 10 attempts, skip spawning this time
+  if (!validPos) return;
+
+  const imgSrc = getNextImage();
+  const { update, mesh, dispose } = setupImageRain(scene, {
+    imageSrc: imgSrc,
+    density: 2.0,
+    colorProminence: 0.95,
+    contrastBoost: true,
+    brightness: 1.5, // Brightness boost as requested
+    fadeInDuration: 4.0 // 4 seconds organic fade-in
+  });
+
+  mesh.position.copy(spawnPos);
+
+  // Orient to face camera (Do not spawn at an angle)
+  mesh.lookAt(camera.position);
+
+  scene.add(mesh);
+  activeImages.push({ update, mesh, dispose, spawnTime: performance.now() });
+}
+
 // Handle Window Resize via viewport source of truth
 onResize((newAspect) => {
   camera.aspect = newAspect;
@@ -67,6 +154,35 @@ function animate(now) {
 
   // Update Rain Canvas
   updateRain(deltaTime, camera);
+
+  // Manage Dynamic Image Spawning
+  if (now - lastSpawnTime > nextSpawnInterval * 1000) {
+    spawnRandomImage();
+    lastSpawnTime = now;
+    nextSpawnInterval = 5 + Math.random() * 15; // Pick a new random interval for next time
+  }
+
+  // Update and Cull active images
+  projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  frustum.setFromProjectionMatrix(projScreenMatrix);
+
+  for (let i = activeImages.length - 1; i >= 0; i--) {
+    const imgObj = activeImages[i];
+    imgObj.update(deltaTime);
+
+    // Frustum check to save memory
+    const planeMesh = imgObj.mesh.children[0];
+    planeMesh.updateMatrixWorld();
+
+    // Give it a 2 second grace period before culling to prevent immediate pop-in/out during camera turns
+    if (now - imgObj.spawnTime > 2000) {
+      if (!frustum.intersectsObject(planeMesh)) {
+        scene.remove(imgObj.mesh);
+        imgObj.dispose();
+        activeImages.splice(i, 1);
+      }
+    }
+  }
 
   // Update FPS Camera
   updateFPSCamera(deltaTime, camera);

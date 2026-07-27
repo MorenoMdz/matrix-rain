@@ -41,8 +41,7 @@ An "almost" faithful reproduction of the iconic Matrix "code rain" built with va
 - [x] **Milestone 1:** CanvasTexture 2D rain on a flat plane 
 - [x] **Milestone 2:** InstancedMesh true 3D rain columns
 - [x] **Milestone 3:** Interaction and movement using a first-person WASD + mouse-look camera + Glich in the Matrix 
-- [ ] **Milestone 4:** Devanagari/Sanskrit character set (there is a Mahabharata concept I have in mind for Hindu Mythology, something the Wachowskis' were fond of) ⏳ *(In Progress)*
-- [ ] **Milestone 5:** "Ghost" image encoded in rain density and other use-cases for this.  
+- [ ] **Milestone 4:** Display an image encoded in a dense shower of code rain ⏳ *(In Progress)*
 
 ## TODO
 - Browser check: Ensure compatability with p99 browsers

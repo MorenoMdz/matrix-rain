@@ -16,7 +16,7 @@
 - Dispose geometry and materials when removing objects: `.dispose()`
 
 ## Camera
-- PerspectiveCamera(75, aspect, 0.1, 1000) is the default starting point
+- PerspectiveCamera is the default starting point
 - Store camera position/direction in plain objects, not THREE.Vector3, for hot-path code
 
 ## Avoid
