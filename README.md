@@ -5,7 +5,7 @@
   </a>
   &nbsp;
   <a href="https://anshs.github.io/matrix-rain/3d-navigation-only/">
-    <img src="https://img.shields.io/badge/3D_Parallax_Rain-22272e?style=for-the-badge&labelColor=1b1f23&color=adbac7" alt="3D with Navigation" />
+    <img src="https://img.shields.io/badge/3D_with_Navigation-22272e?style=for-the-badge&labelColor=1b1f23&color=adbac7" alt="3D with Navigation" />
   </a>
   &nbsp;
   <a href="https://anshs.github.io/matrix-rain/3d/">
