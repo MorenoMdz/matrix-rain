@@ -47,12 +47,12 @@ const { update: updateRain, resize: resizeRain, getMesh } = setupRain3D(scene, c
 // Image Spawner settings
 let nextSpawnInterval = 5 + Math.random() * 15; // Random between 5 and 20 seconds
 const IMAGES = [
-  'src/assets/images/neo.png',
-  'src/assets/images/morpheus.png',
-  'src/assets/images/smith.png',
-  'src/assets/images/smith2.png',
-  'src/assets/images/trinity.jpg',
-  'src/assets/images/matrix.jpg'
+  new URL('./assets/images/neo.png', import.meta.url).href,
+  new URL('./assets/images/morpheus.png', import.meta.url).href,
+  new URL('./assets/images/smith.png', import.meta.url).href,
+  new URL('./assets/images/smith2.png', import.meta.url).href,
+  new URL('./assets/images/trinity.jpg', import.meta.url).href,
+  new URL('./assets/images/matrix.jpg', import.meta.url).href
 ];
 let activeImages = [];
 let lastSpawnTime = performance.now();
