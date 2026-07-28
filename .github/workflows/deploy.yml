@@ -68,6 +68,20 @@ jobs:
           cp -r dist/* ../dist/3d/
           cd ..
 
+      - name: Checkout 3D Navigation Branch
+        uses: actions/checkout@v4
+        with:
+          ref: 3d-navigation
+          path: branch-3d-nav
+      - name: Build 3D Navigation Branch
+        run: |
+          cd branch-3d-nav
+          npm ci
+          npx vite build --base=/matrix-rain/3d-navigation-only/
+          mkdir -p ../dist/3d-navigation-only
+          cp -r dist/* ../dist/3d-navigation-only/
+          cd ..
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact

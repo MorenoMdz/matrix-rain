@@ -152,6 +152,11 @@ function animate(now) {
   // Update FPS counter
   updateFPS(now);
 
+  // Update FPS Camera BEFORE frustum checks and rain updates
+  updateFPSCamera(deltaTime, camera);
+  camera.updateMatrixWorld();
+  camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
+
   // Update Rain Canvas
   updateRain(deltaTime, camera);
 
@@ -184,8 +189,7 @@ function animate(now) {
     }
   }
 
-  // Update FPS Camera
-  updateFPSCamera(deltaTime, camera);
+  // FPS Camera is already updated at the start of the frame
 
   // Make God Camera follow the main camera
   if (activeCamera === godCamera) {

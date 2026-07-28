@@ -95,18 +95,25 @@ export function setupFPSCamera(camera, domElement) {
 export function updateFPSCamera(deltaTime, camera) {
   if (!isLocked && !isMobileActive) return;
 
-  const dt = deltaTime / 1000;
+  // Cap deltaTime to avoid massive jumps during lag spikes
+  const dt = Math.min(deltaTime / 1000, 0.1);
   const currentSpeed = speed * dt;
 
-  // Translate relative to camera's local axes (free-floating)
-  if (keys.w) camera.translateZ(-currentSpeed);
-  if (keys.s) camera.translateZ(currentSpeed);
-  if (keys.a) camera.translateX(-currentSpeed);
-  if (keys.d) camera.translateX(currentSpeed);
-  
-  // Space moves up (local Y), Shift moves down (local Y)
-  if (keys.space) camera.translateY(currentSpeed);
-  if (keys.shift) camera.translateY(-currentSpeed);
+  const direction = new THREE.Vector3();
+
+  if (keys.w) direction.z -= 1;
+  if (keys.s) direction.z += 1;
+  if (keys.a) direction.x -= 1;
+  if (keys.d) direction.x += 1;
+  if (keys.space) direction.y += 1;
+  if (keys.shift) direction.y -= 1;
+
+  if (direction.lengthSq() > 0) {
+    direction.normalize();
+    camera.translateX(direction.x * currentSpeed);
+    camera.translateY(direction.y * currentSpeed);
+    camera.translateZ(direction.z * currentSpeed);
+  }
 }
 
 export function simulateMouseMove(movementX, movementY) {

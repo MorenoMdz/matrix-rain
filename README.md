@@ -4,6 +4,10 @@
     <img src="https://img.shields.io/badge/▶_Live_Demo-00FF66?style=for-the-badge&labelColor=003311&color=00FF66" alt="Live Demo" />
   </a>
   &nbsp;
+  <a href="https://anshs.github.io/matrix-rain/3d-navigation-only/">
+    <img src="https://img.shields.io/badge/3D_Parallax_Rain-22272e?style=for-the-badge&labelColor=1b1f23&color=adbac7" alt="3D with Navigation" />
+  </a>
+  &nbsp;
   <a href="https://anshs.github.io/matrix-rain/3d/">
     <img src="https://img.shields.io/badge/3D_Parallax_Rain-22272e?style=for-the-badge&labelColor=1b1f23&color=adbac7" alt="3D Parallax Rain" />
   </a>
@@ -41,7 +45,7 @@ An "almost" faithful reproduction of the iconic Matrix "code rain" built with va
 - [x] **Milestone 1:** CanvasTexture 2D rain on a flat plane 
 - [x] **Milestone 2:** InstancedMesh true 3D rain columns
 - [x] **Milestone 3:** Interaction and movement using a first-person WASD + mouse-look camera + Glich in the Matrix 
-- [ ] **Milestone 4:** Display an image encoded in a dense shower of code rain ⏳ *(In Progress)*
+- [x] **Milestone 4:** Display an image encoded in a dense shower of code rain
 
 ## TODO
 - Browser check: Ensure compatability with p99 browsers
@@ -80,6 +84,9 @@ graph TD
     subgraph GameLoop [2. Render / Update Loop]
         A[animate in main.js] -->|Calls| UFC[updateFPSCamera]
         A -->|Calls| UR[updateRain]
+        A -->|Occasionally Calls| spawnRandomImage
+        spawnRandomImage -->|Calls| SIR[setupImageRain]
+        A -->|Calls| ImageUpdate[imageObj.update]
         UR -->|Calls| TU[Trail.update]
         UR -->|Calls| GCI[getCharIndex]
     end
@@ -115,7 +122,18 @@ This is the most complex file in the project. It handles the GPU instantiation a
 
 ---
 
-### 3. Support Functions
+### 3. The Image Spawner (Ghost Images): `src/rain/image-rain.js`
+
+This module is responsible for rendering recognizable images entirely out of falling Matrix rain particles.
+
+*   **`setupImageRain(scene, options)`**: 
+    *   **What it does**: Takes an image URL, analyzes its pixel data on a hidden 2D canvas, and builds a dedicated `THREE.InstancedMesh` where each instance represents a pixel/character of the image. It uses a custom shader that maps the image's original colors to the matrix characters, applying brightness, contrast boosts, and an organic fade-in effect.
+    *   **What it returns**: Returns the `mesh` object (to be placed in the world), an `update(deltaTime)` function (to animate the rain falling down the image), and a `dispose` function to free up WebGL memory when the image is culled.
+*   **Dynamic Spawning (in `main.js`)**: The main animation loop occasionally triggers `spawnRandomImage()`. This function picks a random image from an array (Neo, Morpheus, Trinity, etc.), calculates a clear position ahead of the camera, and spawns the image mesh. It also manages Frustum Culling to cleanly destroy image instances once they fall behind the camera.
+
+---
+
+### 4. Support Functions
 
 #### `src/utils/fps-camera.js`
 Handles the First Person movement (zero-gravity flying).
