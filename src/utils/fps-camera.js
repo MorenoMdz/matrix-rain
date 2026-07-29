@@ -10,6 +10,8 @@ export function setMobileActive(active) {
   isMobileActive = active;
 }
 
+const _dir = new THREE.Vector3();
+
 export const keys = {
   w: false,
   a: false,
@@ -99,7 +101,7 @@ export function updateFPSCamera(deltaTime, camera) {
   const dt = Math.min(deltaTime / 1000, 0.1);
   const currentSpeed = speed * dt;
 
-  const direction = new THREE.Vector3();
+  const direction = _dir;
 
   if (keys.w) direction.z -= 1;
   if (keys.s) direction.z += 1;

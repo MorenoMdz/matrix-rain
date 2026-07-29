@@ -205,6 +205,11 @@ export function setupRain3D(scene, initialCamera) {
   const projScreenMatrix = new THREE.Matrix4();
   const sqSpawnRange = SPAWN_RANGE * SPAWN_RANGE;
 
+  // Pre-allocated objects for frustum culling (avoid GC)
+  const _trailCenter = new THREE.Vector3();
+  const _sphere = new THREE.Sphere();
+  const _dir = new THREE.Vector3();
+
   function update(deltaTime, camera) {
     globalTime += deltaTime;
 
@@ -226,9 +231,11 @@ export function setupRain3D(scene, initialCamera) {
       }
 
       // Check if column intersects Frustum
-      const trailCenter = new THREE.Vector3().addVectors(trail.position, trail.direction.clone().multiplyScalar(-trail.totalLength / 2));
-      const sphere = new THREE.Sphere(trailCenter, trail.totalLength / 2 + CHAR_HEIGHT);
-      if (!frustum.intersectsSphere(sphere)) continue;
+      _trailCenter.copy(trail.position);
+      _dir.copy(trail.direction).multiplyScalar(-trail.totalLength / 2);
+      _trailCenter.add(_dir);
+      _sphere.set(_trailCenter, trail.totalLength / 2 + CHAR_HEIGHT);
+      if (!frustum.intersectsSphere(_sphere)) continue;
 
       for (let d = 0; d < trail.drops.length; d++) {
         const drop = trail.drops[d];
