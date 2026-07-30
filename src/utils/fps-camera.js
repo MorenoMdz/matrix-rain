@@ -102,6 +102,7 @@ export function updateFPSCamera(deltaTime, camera) {
   const currentSpeed = speed * dt;
 
   const direction = _dir;
+  direction.set(0, 0, 0);
 
   if (keys.w) direction.z -= 1;
   if (keys.s) direction.z += 1;
