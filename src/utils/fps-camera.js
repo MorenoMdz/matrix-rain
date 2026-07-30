@@ -21,6 +21,17 @@ export const keys = {
   shift: false,
 };
 
+const pressedKeyboardKeys = new Set();
+
+function syncKeyboardMovement() {
+  keys.w = pressedKeyboardKeys.has('w') || pressedKeyboardKeys.has('arrowup');
+  keys.a = pressedKeyboardKeys.has('a') || pressedKeyboardKeys.has('arrowleft');
+  keys.s = pressedKeyboardKeys.has('s') || pressedKeyboardKeys.has('arrowdown');
+  keys.d = pressedKeyboardKeys.has('d') || pressedKeyboardKeys.has('arrowright');
+  keys.space = pressedKeyboardKeys.has(' ');
+  keys.shift = pressedKeyboardKeys.has('shift');
+}
+
 // Movement speed
 const speed = 30.0;
 // Mouse sensitivity
@@ -70,22 +81,19 @@ export function setupFPSCamera(camera, domElement) {
 
   document.addEventListener('keydown', (event) => {
     const key = event.key.toLowerCase();
-    if (key === 'w') keys.w = true;
-    if (key === 'a') keys.a = true;
-    if (key === 's') keys.s = true;
-    if (key === 'd') keys.d = true;
-    if (key === ' ') keys.space = true;
-    if (key === 'shift') keys.shift = true;
+    pressedKeyboardKeys.add(key);
+    syncKeyboardMovement();
   });
 
   document.addEventListener('keyup', (event) => {
     const key = event.key.toLowerCase();
-    if (key === 'w') keys.w = false;
-    if (key === 'a') keys.a = false;
-    if (key === 's') keys.s = false;
-    if (key === 'd') keys.d = false;
-    if (key === ' ') keys.space = false;
-    if (key === 'shift') keys.shift = false;
+    pressedKeyboardKeys.delete(key);
+    syncKeyboardMovement();
+  });
+
+  window.addEventListener('blur', () => {
+    pressedKeyboardKeys.clear();
+    syncKeyboardMovement();
   });
 }
 
