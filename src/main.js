@@ -9,6 +9,22 @@ import { setupFPSCamera, updateFPSCamera } from './utils/fps-camera.js';
 import { setupMobileControls } from './utils/mobile-controls.js';
 import './style.css';
 
+const searchParams = new URLSearchParams(window.location.search);
+const isEmbedMode = searchParams.get('embed') === '1';
+const requestedParentOrigin = searchParams.get('parentOrigin');
+const parentOrigin = requestedParentOrigin && /^https?:\/\//.test(requestedParentOrigin)
+  ? requestedParentOrigin
+  : '*';
+
+if (isEmbedMode) {
+  document.documentElement.classList.add('embed-mode');
+}
+
+function postEmbedMessage(type) {
+  if (!isEmbedMode || window.parent === window) return;
+  window.parent.postMessage({ type }, parentOrigin);
+}
+
 // Scene, Camera, Renderer Setup
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x000000, 150, 250);
@@ -35,7 +51,7 @@ document.body.appendChild(renderer.domElement);
 setupFPSCamera(camera, document.body);
 
 // Setup Mobile Controls (will only activate if touch is supported)
-setupMobileControls();
+setupMobileControls({ showGuide: !isEmbedMode });
 
 // Setup FPS counter
 setupFPS();
@@ -212,6 +228,7 @@ function animate(now) {
 
 // Start loop
 animate(performance.now());
+requestAnimationFrame(() => postEmbedMessage('MATRIX_RAIN_READY'));
 
 /* ========= UI & CONTROLS LOGIC ========= */
 let debugVisible = false;
@@ -266,15 +283,26 @@ window.addEventListener('keydown', (e) => {
     }
   }
 
-  if (key === 'f') toggleFullscreen();
+  if (key === 'f' && !isEmbedMode) toggleFullscreen();
   if (key === 'h') toggleHUD();
 
   if (e.key === 'Escape') {
     const helpModal = document.getElementById('help-modal');
     if (helpModal && !helpModal.classList.contains('hidden')) {
       helpModal.classList.add('hidden');
+      return;
     }
+    postEmbedMessage('MATRIX_RAIN_CLOSE');
   }
+});
+
+let embedPointerWasLocked = false;
+document.addEventListener('pointerlockchange', () => {
+  const pointerIsLocked = document.pointerLockElement !== null;
+  if (isEmbedMode && embedPointerWasLocked && !pointerIsLocked) {
+    postEmbedMessage('MATRIX_RAIN_CLOSE');
+  }
+  embedPointerWasLocked = pointerIsLocked;
 });
 
 /* ========= MOBILE TOUCH GESTURES ========= */
@@ -289,7 +317,7 @@ window.addEventListener('touchstart', (e) => {
   const tapLength = currentTime - lastTapTime;
 
   // Double Tap detection (under 300ms)
-  if (tapLength < 300 && tapLength > 0) {
+  if (!isEmbedMode && tapLength < 300 && tapLength > 0) {
     toggleFullscreen();
     clearTimeout(longPressTimer);
     e.preventDefault();

@@ -1,6 +1,6 @@
 import { keys, setMobileActive, simulateMouseMove } from './fps-camera.js';
 
-export function setupMobileControls() {
+export function setupMobileControls({ showGuide = true } = {}) {
   const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   
   if (!isTouchDevice) return;
@@ -18,37 +18,39 @@ export function setupMobileControls() {
   document.body.appendChild(joystickBase);
 
   // 2. Create Guide Overlay
-  const guide = document.createElement('div');
-  guide.id = 'mobile-guide';
-  guide.innerHTML = `
-    <div class="guide-half left-half">
-      <svg class="guide-svg" viewBox="0 0 100 100">
-        <rect x="20" y="20" width="60" height="60" rx="8" fill="none" stroke="#0F0" stroke-width="3" stroke-dasharray="6 4" />
-        <rect x="38" y="38" width="24" height="24" rx="4" fill="#0F0" />
-        <path d="M50 8 L43 16 L57 16 Z" fill="#0F0" />
-        <path d="M50 92 L43 84 L57 84 Z" fill="#0F0" />
-        <path d="M8 50 L16 43 L16 57 Z" fill="#0F0" />
-        <path d="M92 50 L84 43 L84 57 Z" fill="#0F0" />
-      </svg>
-      <p>Drag on left to Move</p>
-    </div>
-    <div class="guide-half right-half">
-      <svg class="guide-svg" viewBox="0 0 100 100">
-        <path d="M30 70 Q 50 30 70 70" fill="none" stroke="#0F0" stroke-width="3" stroke-dasharray="6 4" />
-        <polygon points="70,70 62,62 76,58" fill="#0F0" />
-        <rect x="24" y="64" width="12" height="12" rx="3" fill="#0F0" />
-        <rect x="18" y="58" width="24" height="24" rx="6" fill="none" stroke="#0F0" stroke-width="2" opacity="0.6" />
-      </svg>
-      <p>Swipe on right to Look</p>
-    </div>
-  `;
-  document.body.appendChild(guide);
+  if (showGuide) {
+    const guide = document.createElement('div');
+    guide.id = 'mobile-guide';
+    guide.innerHTML = `
+      <div class="guide-half left-half">
+        <svg class="guide-svg" viewBox="0 0 100 100">
+          <rect x="20" y="20" width="60" height="60" rx="8" fill="none" stroke="#0F0" stroke-width="3" stroke-dasharray="6 4" />
+          <rect x="38" y="38" width="24" height="24" rx="4" fill="#0F0" />
+          <path d="M50 8 L43 16 L57 16 Z" fill="#0F0" />
+          <path d="M50 92 L43 84 L57 84 Z" fill="#0F0" />
+          <path d="M8 50 L16 43 L16 57 Z" fill="#0F0" />
+          <path d="M92 50 L84 43 L84 57 Z" fill="#0F0" />
+        </svg>
+        <p>Drag on left to Move</p>
+      </div>
+      <div class="guide-half right-half">
+        <svg class="guide-svg" viewBox="0 0 100 100">
+          <path d="M30 70 Q 50 30 70 70" fill="none" stroke="#0F0" stroke-width="3" stroke-dasharray="6 4" />
+          <polygon points="70,70 62,62 76,58" fill="#0F0" />
+          <rect x="24" y="64" width="12" height="12" rx="3" fill="#0F0" />
+          <rect x="18" y="58" width="24" height="24" rx="6" fill="none" stroke="#0F0" stroke-width="2" opacity="0.6" />
+        </svg>
+        <p>Swipe on right to Look</p>
+      </div>
+    `;
+    document.body.appendChild(guide);
 
-  // Fade out guide after 4 seconds
-  setTimeout(() => {
-    guide.style.opacity = '0';
-    setTimeout(() => guide.remove(), 1000);
-  }, 4000);
+    // Fade out guide after 4 seconds
+    setTimeout(() => {
+      guide.style.opacity = '0';
+      setTimeout(() => guide.remove(), 1000);
+    }, 4000);
+  }
 
   // 3. Touch Event Logic
   let moveTouchId = null;

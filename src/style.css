@@ -5,6 +5,11 @@ body {
   background-color: #000;
 }
 
+.embed-mode .footer,
+.embed-mode .help-modal {
+  display: none !important;
+}
+
 canvas {
   display: block;
   width: 100vw;
