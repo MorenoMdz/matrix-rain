@@ -48,7 +48,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 document.body.appendChild(renderer.domElement);
 
 // Setup FPS camera for main camera
-setupFPSCamera(camera, document.body);
+setupFPSCamera(camera, document.body, { allowUnlockedKeyboard: isEmbedMode });
 
 // Setup Mobile Controls (will only activate if touch is supported)
 setupMobileControls({ showGuide: !isEmbedMode });

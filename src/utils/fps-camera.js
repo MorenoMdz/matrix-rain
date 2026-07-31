@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 let isLocked = false;
+let allowUnlockedKeyboard = false;
 let pitch = 0;
 let yaw = 0;
 
@@ -41,11 +42,13 @@ const sensitivity = 0.002;
  * Initializes the FPS camera controls.
  * @param {THREE.Camera} camera The main camera to control
  * @param {HTMLElement} domElement The element to attach pointer lock
+ * @param {{ allowUnlockedKeyboard?: boolean }} [options] Optional control behavior
  */
 let mainCamera;
 
-export function setupFPSCamera(camera, domElement) {
+export function setupFPSCamera(camera, domElement, options = {}) {
   mainCamera = camera;
+  allowUnlockedKeyboard = options.allowUnlockedKeyboard ?? false;
   // Extract initial rotation
   const euler = new THREE.Euler(0, 0, 0, 'YXZ');
   euler.setFromQuaternion(camera.quaternion);
@@ -103,7 +106,7 @@ export function setupFPSCamera(camera, domElement) {
  * @param {THREE.Camera} camera The camera to move
  */
 export function updateFPSCamera(deltaTime, camera) {
-  if (!isLocked && !isMobileActive) return;
+  if (!isLocked && !isMobileActive && !allowUnlockedKeyboard) return;
 
   // Cap deltaTime to avoid massive jumps during lag spikes
   const dt = Math.min(deltaTime / 1000, 0.1);
